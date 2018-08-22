@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Support "Wheel Of Fate"</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script>
+$(document).ready(function() {
+	monthNames = ["January", "February", "March", "April", "May", "June",
+		  "July", "August", "September", "October", "November", "December"
+		];
+    $.ajax({
+        url: "/schedules"
+    }).then(function(data) {
+    	schedulesHtml = "<ul>";
+       for(var i = 0; i < data.length; i++) {
+    	   start_date = new Date(data[i].scheduleStartTime);
+    	   end_date = new Date(data[i].scheduleEndTime);
+    	   
+    	   schedulesHtml += "<li>Schedule ID = " + data[i].scheduleId + 
+    	   "; Start time = " + start_date.getFullYear() + ", " + monthNames[start_date.getMonth()] + " " + start_date.getDate() +
+    	   "; End time = " + end_date.getFullYear() + " " + monthNames[end_date.getMonth()] + " " + end_date.getDate() +
+    	   "; <button id='slotsButton" + data[i].scheduleId + "' onclick='viewSlots(" + data[i].scheduleId + ")'>View slots</button>" +
+    	   "<p id='slotList" +  data[i].scheduleId + "'></p>" +
+    	   "</li>";
+       }
+       schedulesHtml += "</ul>";
+       $("#schedulesList").html(schedulesHtml);
+    });
+});
+
+function submit() {
+	scheduleStartTime = $("#scheduleStartTime").val();
+	scheduleEndTime = $("#scheduleEndTime").val();
+	$.ajax({
+	    type: 'POST',
+	    url: '/add',
+	    data: '{"scheduleStartTime":"' + scheduleStartTime + '", "scheduleEndTime" : "' + scheduleEndTime + '"}',
+	    success: function(data) { console.log(data); },
+	    error: location.reload(),
+	    contentType: "application/json",
+	    dataType: 'json'
+	});
+}
+
+function assignEmployee(slotId, scheduleId) {
+	$.ajax({
+		type: "GET",
+		url: "/assign_employee?slot_id=" + slotId + "&schedule_id=" + scheduleId,
+		success: function(data) {
+			console.log(data);
+			viewSlots(scheduleId);
+		},
+		error: function(err) {
+			console.log(err);
+		}
+	});
+}
+
+function viewSlots(scheduleId) {
+	$.ajax({
+		type: "GET",
+		url: "/slots?schedule_id=" + scheduleId,
+		success: function(data) {
+			console.log(data);
+			slotsListHtml = "<ul>";
+			for(var i = 0; i < data.length; i++) {
+				slotsListHtml += "<li>Slot ID = " + data[i].slotId + ", Schedule date = " + data[i].scheduleDate + ", Employee ID " + data[i].employeeId + " -- Assign employee -- <button id='slotId"+ data[i].slotId +"' onclick='assignEmployee(" + data[i].slotId + ", " + scheduleId + ")'>Submit</li>";
+			}
+			slotsListHtml += "</ul>";
+			$("#slotList" + scheduleId).html(slotsListHtml);
+		},
+		error: function(err) {console.log(err)}
+	});
+}
+</script>
+</head>
+<body>
+	<p>
+      Start date : <input type="date" name="scheduleStartTime" id="scheduleStartTime"/><br/>
+      End date : <input type="date" name="scheduleEndTime" id="scheduleEndTime"/><br/>
+	  <button type="submit" name="Submit" id="scheduleSubmit" onclick="submit();">Submit</button>
+	</p>
+	<p id="result"></p>
+	<p id="schedulesList"></p>
+</body>
+</html>
